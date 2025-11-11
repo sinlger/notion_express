@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>测试 /api/publish</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 20px; }
+    h1 { font-size: 20px; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: flex; flex-direction: column; font-size: 12px; color: #333; }
+    input, select, textarea { padding: 8px; font-size: 14px; }
+    textarea { min-height: 160px; grid-column: 1 / span 2; }
+    .row { grid-column: 1 / span 2; display: flex; gap: 8px; align-items: center; }
+    .actions { display: flex; gap: 8px; }
+    button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+    pre { background: #f6f8fa; padding: 12px; overflow: auto; border-radius: 6px; }
+  </style>
+  </head>
+  <body>
+    <h1>测试接口：POST /api/publish</h1>
+    <form id="publishForm">
+      <label>type<select name="type">
+        <option value="post">post</option>
+        <option value="page">page</option>
+        <option value="note">note</option>
+      </select></label>
+
+      <label>status<select name="status">
+        <option value="Draft">Draft</option>
+        <option value="Published">Published</option>
+        <option value="Archived">Archived</option>
+      </select></label>
+
+      <label>category<input name="category" value="Tech" /></label>
+      <label>tags（逗号分隔）<input name="tags" value="AI,Node" /></label>
+
+      <label>title<input name="title" value="测试文章" /></label>
+      <label>slug<input name="slug" value="test-article" /></label>
+
+      <label>date<input name="date" type="date" value="2025-11-10" /></label>
+      <label>password<input name="password" value="" /></label>
+
+      <label>icon（emoji 或 URL）<input name="icon" value="https://example.com/icon.png" /></label>
+
+      <label class="row">summary<input name="summary" value="这是摘要" /></label>
+
+      <label class="row">markdown<textarea name="markdown"># 这是一个测试
+内容正文</textarea></label>
+
+      <div class="row actions">
+        <button type="submit">提交到 /api/publish</button>
+        <button type="button" id="resetBtn">重置</button>
+      </div>
+    </form>
+
+    <h2>响应结果</h2>
+    <pre id="result">尚未提交</pre>
+
+    <script>
+      const form = document.getElementById('publishForm');
+      const resultEl = document.getElementById('result');
+      const resetBtn = document.getElementById('resetBtn');
+
+      function parseTags(v) { return (v || '').split(',').map(s => s.trim()).filter(Boolean); }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = {
+          type: fd.get('type') || undefined,
+          title: fd.get('title') || undefined,
+          summary: fd.get('summary') || undefined,
+          status: fd.get('status') || undefined,
+          category: fd.get('category') || undefined,
+          tags: parseTags(fd.get('tags')),
+          slug: fd.get('slug') || undefined,
+          date: fd.get('date') || undefined,
+          password: fd.get('password') || undefined,
+          icon: fd.get('icon') || undefined,
+          markdown: fd.get('markdown') || ''
+        };
+        resultEl.textContent = '提交中...';
+        try {
+          const resp = await fetch('/api/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json();
+          resultEl.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+          resultEl.textContent = '请求失败：' + (err?.message || err);
+        }
+      });
+
+      resetBtn.addEventListener('click', () => {
+        form.reset();
+        resultEl.textContent = '尚未提交';
+      });
+    </script>
+  </body>
+  </html>
