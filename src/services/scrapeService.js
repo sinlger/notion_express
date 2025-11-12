@@ -66,9 +66,23 @@ export async function fetchHtml(url, opts = {}) {
             });
           }
           const html = await page.content();
+          // 提取代码内容（优先 wp-block-code，其次 pre）
+          let codeContents = [];
+          try {
+            codeContents = await page.$$eval('.wp-block-code', (els) =>
+              els.map((el) => (el.innerText || '').trim()).filter(Boolean)
+            );
+            if (!codeContents.length) {
+              const preTexts = await page.$$eval('pre', (els) =>
+                els.map((el) => (el.innerText || '').trim()).filter(Boolean)
+              );
+              codeContents = preTexts.slice(0, 50);
+            }
+          } catch {}
           output = {
             html,
             meta: { status: 200, contentType: 'text/html', finalUrl: page.url() },
+            codeContents,
           };
         },
       });
@@ -108,6 +122,7 @@ export async function fetchHtml(url, opts = {}) {
         }
       } catch { }
       // 查询 body 内所有 class 为 wp-block-code 的元素
+      let codeContentsArr = [];
       try {
         if ($) {
           const codeEls = $('body .wp-block-code');
@@ -115,6 +130,7 @@ export async function fetchHtml(url, opts = {}) {
           const codeContents = codeEls
             .map((i, el) => ($(el).text() || '').trim())
             .get();
+          codeContentsArr = codeContents;
           console.log('[scrape] wp-block-code count', codeCount);
           codeContents.slice(0, 5).forEach((txt, idx) => {
             console.log(`[scrape] wp-code[${idx}]`, txt.slice(0, 400));
@@ -136,6 +152,7 @@ export async function fetchHtml(url, opts = {}) {
           contentType: response?.headers?.['content-type'] ?? '',
           finalUrl: request.loadedUrl || request.url,
         },
+        codeContents: codeContentsArr,
       };
       try {
         console.log('[scrape] done', { status: output.meta.status, url: output.meta.finalUrl });

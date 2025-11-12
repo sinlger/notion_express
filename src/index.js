@@ -50,7 +50,7 @@ app.listen(PORT, () => {
 });
 
 // 定时任务：每分钟按顺序执行 抓取→清洗→发布（上海时区）
-async function runScheduledPublish() {
+async function runScheduledPublish () {
   // 生成当天（上海时区）日期，格式 YYYYMMDD，用于拼接测试 URL
   const nowShanghai = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
   const yyyy = nowShanghai.getFullYear();
@@ -62,14 +62,16 @@ async function runScheduledPublish() {
   try {
     console.log('[CRON] 开始执行测试流水线：', testUrl);
     // 1) 抓取
-    const { html, meta } = await fetchHtml(testUrl);
+    const { html, meta, codeContents } = await fetchHtml(testUrl);
     const title = extractTitle(html) || testUrl;
+    console.log('[CRON] codeContents count:', Array.isArray(codeContents) ? codeContents.length : 0);
     console.log(title)
     console.log(html)
-    return false
+    // return false
     // 2) AI 清洗为 Markdown
-    const { markdown, usedModel } = await rewriteContent({ html, mode: 'clean' });
-    
+    const { markdown, usedModel } = await rewriteContent({ html });
+    console.log(markdown)
+    // return false
     // 3) 发布到 Notion（使用你的数据库字段风格）
 
     const slug = 'cron-test-' + new Date().toISOString().replace(/[:.]/g, '-');
