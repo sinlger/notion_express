@@ -47,7 +47,7 @@ export async function fetchHtml(url, opts = {}) {
         requestHandler: async ({ page, request }) => {
           await page.goto(request.url, { waitUntil: rule.waitUntil || 'domcontentloaded' });
           if (rule.waitForSelector) {
-            await page.waitForSelector(rule.waitForSelector, { timeout: 15000 }).catch(() => {});
+            await page.waitForSelector(rule.waitForSelector, { timeout: 15000 }).catch(() => { });
           }
           if (rule.scroll) {
             await page.evaluate(async () => {
@@ -86,10 +86,49 @@ export async function fetchHtml(url, opts = {}) {
     maxRequestsPerCrawl: 1,
     requestHandler: async ({ request, response, body, $ }) => {
       try {
+        const start = Date.now();
+        const ct = response?.headers?.['content-type'] ?? '';
+        const status = response?.statusCode;
+        const finalUrl = request.loadedUrl || request.url;
+        const rawLen = typeof body === 'string' ? body.length : (body?.length ?? 0);
+        const titleText = (() => {
+          try { return ($?.('title').text() || '').trim(); } catch { return ''; }
+        })();
+        console.log('[scrape] start', { url: request.url });
+        console.log('[scrape] response', { status, contentType: ct, finalUrl });
+        console.log('[scrape] body', body);
+        console.log('[scrape] bodyLength', rawLen);
+        if (titleText) console.log('[scrape] title', titleText);
+      } catch (e) {
+        console.warn('[scrape] pre-handle log error:', e?.message || e);
+      }
+      try {
         if (Array.isArray(rule.removeSelectors) && $) {
           rule.removeSelectors.forEach((sel) => $(sel).remove());
         }
-      } catch {}
+      } catch { }
+      // 查询 body 内所有 class 为 wp-block-code 的元素
+      try {
+        if ($) {
+          const codeEls = $('body .wp-block-code');
+          const codeCount = codeEls.length;
+          const codeContents = codeEls
+            .map((i, el) => ($(el).text() || '').trim())
+            .get();
+          console.log('[scrape] wp-block-code count', codeCount);
+          codeContents.slice(0, 5).forEach((txt, idx) => {
+            console.log(`[scrape] wp-code[${idx}]`, txt.slice(0, 400));
+          });
+        }
+      } catch (e) {
+        console.warn('[scrape] query wp-block-code error:', e?.message || e);
+      }
+      try {
+        const afterTitle = (() => {
+          try { return ($?.('title').text() || '').trim(); } catch { return ''; }
+        })();
+        if (afterTitle) console.log('[scrape] title(after remove)', afterTitle);
+      } catch { }
       output = {
         html: body?.toString?.() ?? '',
         meta: {
@@ -98,6 +137,9 @@ export async function fetchHtml(url, opts = {}) {
           finalUrl: request.loadedUrl || request.url,
         },
       };
+      try {
+        console.log('[scrape] done', { status: output.meta.status, url: output.meta.finalUrl });
+      } catch { }
     },
   });
   await crawler.run([url]);

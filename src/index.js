@@ -57,7 +57,8 @@ async function runScheduledPublish() {
   const mm = String(nowShanghai.getMonth() + 1).padStart(2, '0');
   const dd = String(nowShanghai.getDate()).padStart(2, '0');
   const yyyymmdd = `${yyyy}${mm}${dd}`;
-  const testUrl = process.env.TEST_URL || `https://clashgithub.com/clashnode-${yyyymmdd}.html`;
+  // const testUrl = process.env.TEST_URL || `https://clashgithub.com/clashnode-${yyyymmdd}.html`;
+  const testUrl = process.env.TEST_URL || `https://jichangx.com/free-nodes-${yyyy}-${mm}-${dd}/`;
   try {
     console.log('[CRON] 开始执行测试流水线：', testUrl);
     // 1) 抓取
